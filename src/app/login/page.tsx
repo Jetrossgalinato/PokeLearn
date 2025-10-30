@@ -38,7 +38,7 @@ export default function LoginForm() {
 
       if (error) throw error;
       // Redirect to dashboard or home page after successful login
-      router.push("/");
+      router.push("/main");
     } catch (error: unknown) {
       // Handle Supabase AuthError or other errors with proper type checking
       if (error instanceof AuthError) {
