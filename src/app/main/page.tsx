@@ -27,6 +27,8 @@ type Pokemon = {
   type: string[];
 };
 
+const RESULTS_PER_PAGE = 20;
+
 export default function MainPage() {
   const [allPokemons, setAllPokemons] = useState<PokemonSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -36,6 +38,9 @@ export default function MainPage() {
 
   const [selectedType, setSelectedType] = useState<string | "all">("all");
   const [selectedGen, setSelectedGen] = useState<string | "all">("all");
+
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
 
   // Fetch all Pokémon list on mount
   useEffect(() => {
@@ -54,64 +59,92 @@ export default function MainPage() {
     fetchAll();
   }, []);
 
-  // Fetch detailed Pokémon info and apply filters
+  // Fetch detailed Pokémon info and apply filters & pagination
   useEffect(() => {
     if (!searchTerm.trim()) {
       setResults([]);
       setError("");
+      setTotalPages(1);
+      setCurrentPage(1);
       return;
     }
-    // Filter prefix
     const prefixFiltered = allPokemons.filter((p) =>
       p.name.startsWith(searchTerm.toLowerCase())
     );
 
-    // Filter by type and generation
-    const filteredPokemonsPromises = prefixFiltered
-      .slice(0, 100)
-      .map(async (p) => {
-        const res = await fetch(p.url);
-        if (!res.ok) throw new Error("Failed to fetch Pokémon");
-        const data: PokemonAPIResponse = await res.json();
-
-        // Check generation
-        const selectedGeneration = generations.find(
-          (g) => g.name === selectedGen
-        );
-        const genMatch =
-          selectedGen === "all" ||
-          (selectedGeneration &&
-            data.id >= selectedGeneration.start &&
-            data.id <= selectedGeneration.end);
-
-        // Check type
-        const typeMatch =
-          selectedType === "all" ||
-          data.types.some((t) => t.type.name === selectedType);
-
-        if (genMatch && typeMatch) {
-          return {
-            name: data.name,
-            image:
-              data.sprites.other?.["official-artwork"]?.front_default ?? null,
-            type: data.types.map((t) => t.type.name),
-          } as Pokemon;
-        } else {
-          return null;
-        }
-      });
+    // We'll process up to 300 prefix filtered Pokémon to keep performance reasonable
+    const maxToProcess = 300;
+    const sliceForFiltering = prefixFiltered.slice(0, maxToProcess);
 
     setLoading(true);
-    Promise.all(filteredPokemonsPromises)
-      .then((pokemons) => {
-        setResults(pokemons.filter(Boolean) as Pokemon[]);
+    // Fetch all needed details for filtering first (limited to maxToProcess)
+    Promise.all(
+      sliceForFiltering.map(async (p) => {
+        const res = await fetch(p.url);
+        if (!res.ok) throw new Error("Failed to fetch Pokémon");
+        return res.json() as Promise<PokemonAPIResponse>;
+      })
+    )
+      .then((allDetails) => {
+        // Apply generation and type filters
+        const filtered = allDetails.filter((data) => {
+          const selectedGeneration = generations.find(
+            (g) => g.name === selectedGen
+          );
+          const genMatch =
+            selectedGen === "all" ||
+            (selectedGeneration &&
+              data.id >= selectedGeneration.start &&
+              data.id <= selectedGeneration.end);
+
+          const typeMatch =
+            selectedType === "all" ||
+            data.types.some((t) => t.type.name === selectedType);
+
+          return genMatch && typeMatch;
+        });
+
+        // Update total pages based on filtered results count
+        const pages = Math.ceil(filtered.length / RESULTS_PER_PAGE) || 1;
+        setTotalPages(pages);
+
+        // Clamp currentPage if it exceeds total pages after filtering
+        setCurrentPage((prev) => (prev > pages ? pages : prev));
+
+        // Extract the results for current page
+        const startIndex = (currentPage - 1) * RESULTS_PER_PAGE;
+        const pageSlice = filtered.slice(
+          startIndex,
+          startIndex + RESULTS_PER_PAGE
+        );
+
+        // Map to Pokemon type used in UI
+        const pageResults: Pokemon[] = pageSlice.map((data) => ({
+          name: data.name,
+          image:
+            data.sprites.other?.["official-artwork"]?.front_default ?? null,
+          type: data.types.map((t) => t.type.name),
+        }));
+
+        setResults(pageResults);
         setLoading(false);
       })
       .catch((err) => {
         if (err instanceof Error) setError(err.message);
         setLoading(false);
       });
-  }, [searchTerm, allPokemons, selectedType, selectedGen]);
+  }, [searchTerm, allPokemons, selectedType, selectedGen, currentPage]);
+
+  // Reset page to 1 when filters or searchTerm changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedType, selectedGen]);
+
+  // Pagination control handlers
+  const goToFirst = () => setCurrentPage(1);
+  const goToLast = () => setCurrentPage(totalPages);
+  const goToPrev = () => setCurrentPage((p) => Math.max(1, p - 1));
+  const goToNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 
   return (
     <main className="min-h-screen bg-gray-100 px-6 py-8 flex flex-col items-center">
@@ -132,7 +165,7 @@ export default function MainPage() {
           />
         </div>
 
-        {/* Filters on right side in one row */}
+        {/* Filters on right side */}
         <div className="flex gap-4 min-w-[300px]">
           {/* Type filter */}
           <select
@@ -164,7 +197,47 @@ export default function MainPage() {
         </div>
       </div>
 
-      {/* The rest of your layout (error, loading, results) remains unchanged */}
+      {/* Pagination controls */}
+      {results.length > 0 && (
+        <div className="flex justify-center items-center gap-4 mb-6">
+          <button
+            onClick={goToFirst}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded bg-red-500 text-white disabled:bg-red-300"
+            aria-label="First page"
+          >
+            « First
+          </button>
+          <button
+            onClick={goToPrev}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded bg-red-500 text-white disabled:bg-red-300"
+            aria-label="Previous page"
+          >
+            ‹ Prev
+          </button>
+          <span className="font-semibold">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={goToNext}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded bg-red-500 text-white disabled:bg-red-300"
+            aria-label="Next page"
+          >
+            Next ›
+          </button>
+          <button
+            onClick={goToLast}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded bg-red-500 text-white disabled:bg-red-300"
+            aria-label="Last page"
+          >
+            Last »
+          </button>
+        </div>
+      )}
+
       {error && <p className="text-red-600 mb-4 font-semibold">{error}</p>}
       {loading && (
         <p className="mb-4 text-gray-700 font-semibold">Loading...</p>
