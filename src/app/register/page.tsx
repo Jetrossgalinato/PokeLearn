@@ -13,10 +13,72 @@ import { Button } from "@/components/ui/button";
 import Title from "@/components/Title";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const router = useRouter();
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      // Check if email confirmation is required
+      if (data.user && !data.user.confirmed_at) {
+        setSuccess(true);
+        setError("Please check your email to confirm your account");
+      } else {
+        // Redirect to login or dashboard
+        router.push("/login");
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || "An error occurred during registration");
+      } else {
+        setError("An error occurred during registration");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-50 px-4">
@@ -31,8 +93,21 @@ export default function RegisterForm() {
           </p>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleRegister}>
             <div className="flex flex-col gap-5">
+              {/* Error Message */}
+              {error && (
+                <div
+                  className={`text-sm p-3 rounded-md border ${
+                    success
+                      ? "bg-green-50 text-green-600 border-green-200"
+                      : "bg-red-50 text-red-600 border-red-200"
+                  }`}
+                >
+                  {error}
+                </div>
+              )}
+
               {/* Full Name */}
               <div className="flex flex-col">
                 <Label htmlFor="fullName" className="text-gray-700 font-medium">
@@ -44,6 +119,9 @@ export default function RegisterForm() {
                   placeholder="John Doe"
                   required
                   className="mt-1"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={loading}
                 />
               </div>
 
@@ -58,6 +136,9 @@ export default function RegisterForm() {
                   placeholder="you@example.com"
                   required
                   className="mt-1"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                 />
               </div>
 
@@ -71,11 +152,14 @@ export default function RegisterForm() {
                   type={showPassword ? "text" : "password"}
                   required
                   className="mt-1 pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-6 text-gray-400 hover:text-indigo-600 transition"
+                  className="absolute right-3 top-6 text-gray-400 hover:text-red-500 transition"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -95,6 +179,9 @@ export default function RegisterForm() {
                   type={showConfirmPassword ? "text" : "password"}
                   required
                   className="mt-1 pr-10"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={loading}
                 />
                 <button
                   type="button"
@@ -115,8 +202,14 @@ export default function RegisterForm() {
           </form>
         </CardContent>
         <CardFooter className="flex flex-col gap-3 pt-0">
-          <Button type="submit" className="w-full" size="lg">
-            Register
+          <Button
+            type="submit"
+            className="w-full"
+            size="lg"
+            onClick={handleRegister}
+            disabled={loading}
+          >
+            {loading ? "Creating account..." : "Register"}
           </Button>
           <div className="text-center text-sm text-gray-600">
             Already have an account?{" "}
