@@ -2,9 +2,13 @@
 import Title from "@/components/Title";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { pokemonTypes, generations } from "./utils/constants";
+import { generations } from "./utils/constants";
 import LogoutButton from "../../components/LogoutButton";
 import { supabase } from "@/lib/supabase";
+import SearchBar from "./components/SearchBar";
+import FilterBar from "./components/FilterBar";
+import PaginationControls from "./components/PaginationControls";
+import PokemonGrid from "./components/PokemonGrid";
 
 type PokemonSummary = {
   name: string;
@@ -198,131 +202,26 @@ export default function MainPage() {
 
         {/* Wrapper for search + filters */}
         <div className="flex w-full max-w-5xl items-center gap-4 mt-8 mb-6">
-          {/* Search Bar */}
-          <div className="flex-grow border border-red-400 rounded-full overflow-hidden shadow-sm focus-within:shadow-md transition">
-            <input
-              type="text"
-              placeholder="Search Pokémon by name prefix..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 outline-none text-gray-800 font-medium rounded-full"
-              aria-label="Search Pokémon"
-              autoComplete="off"
-            />
-          </div>
-
-          {/* Filters on right side */}
-          <div className="flex gap-4 min-w-[300px]">
-            {/* Type filter */}
-            <select
-              className="p-2 border rounded"
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-            >
-              <option value="all">All Types</option>
-              {pokemonTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            {/* Generation filter */}
-            <select
-              className="p-2 border rounded"
-              value={selectedGen}
-              onChange={(e) => setSelectedGen(e.target.value)}
-            >
-              <option value="all">All Generations</option>
-              {generations.map((gen) => (
-                <option key={gen.name} value={gen.name}>
-                  {gen.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+          <FilterBar
+            selectedType={selectedType}
+            selectedGen={selectedGen}
+            onTypeChange={setSelectedType}
+            onGenChange={setSelectedGen}
+          />
         </div>
 
-        {/* Pagination controls */}
-        {results.length > 0 && (
-          <div className="flex justify-center items-center gap-4 mb-6">
-            <button
-              onClick={goToFirst}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded bg-red-500 text-white disabled:bg-red-300"
-              aria-label="First page"
-            >
-              « First
-            </button>
-            <button
-              onClick={goToPrev}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded bg-red-500 text-white disabled:bg-red-300"
-              aria-label="Previous page"
-            >
-              ‹ Prev
-            </button>
-            <span className="font-semibold">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={goToNext}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded bg-red-500 text-white disabled:bg-red-300"
-              aria-label="Next page"
-            >
-              Next ›
-            </button>
-            <button
-              onClick={goToLast}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded bg-red-500 text-white disabled:bg-red-300"
-              aria-label="Last page"
-            >
-              Last »
-            </button>
-          </div>
-        )}
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onFirst={goToFirst}
+          onPrev={goToPrev}
+          onNext={goToNext}
+          onLast={goToLast}
+          hasResults={results.length > 0}
+        />
 
-        {error && <p className="text-red-600 mb-4 font-semibold">{error}</p>}
-        {loading && (
-          <p className="mb-4 text-gray-700 font-semibold">Loading...</p>
-        )}
-
-        {/* Results */}
-        <section className="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {results.length === 0 && !loading && !error && (
-            <p className="col-span-full text-center text-gray-600">
-              Use the search above to find Pokémon by name, type, and
-              generation.
-            </p>
-          )}
-          {results.map((pokemon) => (
-            <article
-              key={pokemon.name}
-              className="bg-white rounded-xl shadow-md p-5 flex flex-col items-center text-center hover:shadow-lg transition"
-            >
-              {pokemon.image ? (
-                <img
-                  src={pokemon.image}
-                  alt={pokemon.name}
-                  className="w-28 h-28 object-contain mb-4"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-28 h-28 mb-4 bg-gray-200 rounded-md flex justify-center items-center">
-                  <span className="text-gray-400">No image</span>
-                </div>
-              )}
-              <h2 className="text-xl font-bold text-red-600 mb-2 capitalize">
-                {pokemon.name}
-              </h2>
-              <p className="text-gray-700 capitalize">
-                {pokemon.type.join(", ")}
-              </p>
-            </article>
-          ))}
-        </section>
+        <PokemonGrid results={results} loading={loading} error={error} />
       </main>
     </>
   );
