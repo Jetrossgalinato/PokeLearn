@@ -1,6 +1,7 @@
 "use client";
 import Title from "@/components/Title";
 import React, { useState, useEffect } from "react";
+import { pokemonTypes, generations } from "./utils/constants";
 
 type PokemonSummary = {
   name: string;
@@ -25,40 +26,6 @@ type Pokemon = {
   image: string | null;
   type: string[];
 };
-
-/* List of Pokémon types for filtering */
-const pokemonTypes = [
-  "normal",
-  "fire",
-  "water",
-  "electric",
-  "grass",
-  "ice",
-  "fighting",
-  "poison",
-  "ground",
-  "flying",
-  "psychic",
-  "bug",
-  "rock",
-  "ghost",
-  "dragon",
-  "dark",
-  "steel",
-  "fairy",
-];
-
-/* Example ranges for generations with start/end IDs (simplified) */
-const generations = [
-  { name: "Gen 1", start: 1, end: 151 },
-  { name: "Gen 2", start: 152, end: 251 },
-  { name: "Gen 3", start: 252, end: 386 },
-  { name: "Gen 4", start: 387, end: 493 },
-  { name: "Gen 5", start: 494, end: 649 },
-  { name: "Gen 6", start: 650, end: 721 },
-  { name: "Gen 7", start: 722, end: 809 },
-  { name: "Gen 8", start: 810, end: 898 },
-];
 
 export default function MainPage() {
   const [allPokemons, setAllPokemons] = useState<PokemonSummary[]>([]);
@@ -151,7 +118,7 @@ export default function MainPage() {
       <Title />
 
       {/* Wrapper for search + filters */}
-      <div className="flex w-full max-w-5xl items-center gap-4 mt-8 mb-4">
+      <div className="flex w-full max-w-5xl items-center gap-4 mt-8 mb-6">
         {/* Search Bar */}
         <div className="flex-grow border border-red-400 rounded-full overflow-hidden shadow-sm focus-within:shadow-md transition">
           <input
