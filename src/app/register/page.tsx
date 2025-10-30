@@ -1,27 +1,134 @@
+"use client";
+import React, { useState } from "react";
 import {
   Card,
-  CardAction,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import Title from "@/components/Title";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterForm() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Card Title</CardTitle>
-        <CardDescription>Card Description</CardDescription>
-        <CardAction>Card Action</CardAction>
-      </CardHeader>
-      <CardContent>
-        <p>Card Content</p>
-      </CardContent>
-      <CardFooter>
-        <p>Card Footer</p>
-      </CardFooter>
-    </Card>
+    <div className="min-h-screen flex justify-center items-center bg-gray-50 px-4">
+      <Card className="w-full max-w-sm shadow-lg border border-gray-200">
+        <CardHeader className="text-center pb-2">
+          <Title />
+          <CardTitle className="text-xl font-semibold text-gray-900">
+            Create a new account
+          </CardTitle>
+          <p className="text-sm text-gray-500 mt-1">
+            Fill in the details below to get started
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form>
+            <div className="flex flex-col gap-5">
+              {/* Full Name */}
+              <div className="flex flex-col">
+                <Label htmlFor="fullName" className="text-gray-700 font-medium">
+                  Full Name
+                </Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="John Doe"
+                  required
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col">
+                <Label htmlFor="email" className="text-gray-700 font-medium">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  required
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Password */}
+              <div className="flex flex-col relative">
+                <Label htmlFor="password" className="text-gray-700 font-medium">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="mt-1 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-6 text-gray-400 hover:text-indigo-600 transition"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="flex flex-col relative">
+                <Label
+                  htmlFor="confirmPassword"
+                  className="text-gray-700 font-medium"
+                >
+                  Confirm Password
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  className="mt-1 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-6 text-gray-400 hover:text-indigo-600 transition"
+                  aria-label={
+                    showConfirmPassword ? "Hide password" : "Show password"
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
+            </div>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-3 pt-0">
+          <Button type="submit" className="w-full" size="lg">
+            Register
+          </Button>
+          <div className="text-center text-sm text-gray-600">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="text-red-500 font-semibold hover:underline"
+            >
+              Log in
+            </Link>
+          </div>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }
