@@ -1,7 +1,8 @@
+import LoginForm from "../login/page";
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-dark">
-      <h1 className="text-center">This is the landing page</h1>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <LoginForm />
     </div>
   );
 }
