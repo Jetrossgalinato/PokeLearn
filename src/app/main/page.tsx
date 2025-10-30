@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { pokemonTypes, generations } from "./utils/constants";
 import LogoutButton from "../../components/LogoutButton";
+import { supabase } from "@/lib/supabase";
 
 type PokemonSummary = {
   name: string;
@@ -32,6 +33,8 @@ type Pokemon = {
 const RESULTS_PER_PAGE = 20;
 
 export default function MainPage() {
+  const router = useRouter();
+
   const [allPokemons, setAllPokemons] = useState<PokemonSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [results, setResults] = useState<Pokemon[]>([]);
@@ -44,15 +47,23 @@ export default function MainPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
 
-  const router = useRouter();
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("refreshToken");
-    // Clear any other session data if needed
-    // Redirect user to the login page
-    router.push("/login");
-  };
+  // Check Supabase authentication on mount
+  useEffect(() => {
+    async function checkAuth() {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+        router.push("/login");
+      }
+      setIsAuthChecked(true);
+    }
+    checkAuth();
+  }, [router]);
 
   // Fetch all Pokémon list on mount
   useEffect(() => {
@@ -152,11 +163,32 @@ export default function MainPage() {
     setCurrentPage(1);
   }, [searchTerm, selectedType, selectedGen]);
 
+  // Show loading while checking authentication
+  if (!isAuthChecked) {
+    return (
+      <main className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+        <p className="text-gray-700 text-lg font-semibold">
+          Checking authentication...
+        </p>
+      </main>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
+
   // Pagination control handlers
   const goToFirst = () => setCurrentPage(1);
   const goToLast = () => setCurrentPage(totalPages);
   const goToPrev = () => setCurrentPage((p) => Math.max(1, p - 1));
   const goToNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   return (
     <>
