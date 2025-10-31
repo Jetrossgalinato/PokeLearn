@@ -9,30 +9,9 @@ import SearchBar from "./components/SearchBar";
 import FilterBar from "./components/FilterBar";
 import PaginationControls from "./components/PaginationControls";
 import PokemonGrid from "./components/PokemonGrid";
+import InfoModal from "./components/InfoModal";
 
-type PokemonSummary = {
-  name: string;
-  url: string;
-};
-
-interface PokemonAPIResponse {
-  name: string;
-  sprites: {
-    other?: {
-      "official-artwork"?: {
-        front_default: string | null;
-      };
-    };
-  };
-  types: Array<{ type: { name: string } }>;
-  id: number;
-}
-
-type Pokemon = {
-  name: string;
-  image: string | null;
-  type: string[];
-};
+import { Pokemon, PokemonAPIResponse, PokemonSummary } from "./utils/types";
 
 const RESULTS_PER_PAGE = 20;
 
@@ -53,6 +32,8 @@ export default function MainPage() {
 
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
 
   // Check Supabase authentication on mount
   useEffect(() => {
@@ -151,6 +132,14 @@ export default function MainPage() {
           image:
             data.sprites.other?.["official-artwork"]?.front_default ?? null,
           type: data.types.map((t) => t.type.name),
+          id: data.id,
+          height: data.height,
+          weight: data.weight,
+          abilities: data.abilities.map((a) => a.ability.name),
+          stats: data.stats.map((s) => ({
+            name: s.stat.name,
+            value: s.base_stat,
+          })),
         }));
 
         setResults(pageResults);
@@ -194,6 +183,14 @@ export default function MainPage() {
     router.push("/login");
   };
 
+  const handlePokemonClick = (pokemon: Pokemon) => {
+    setSelectedPokemon(pokemon);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedPokemon(null);
+  };
+
   return (
     <>
       <LogoutButton onLogout={handleLogout} />
@@ -221,7 +218,14 @@ export default function MainPage() {
           hasResults={results.length > 0}
         />
 
-        <PokemonGrid results={results} loading={loading} error={error} />
+        <PokemonGrid
+          results={results}
+          loading={loading}
+          error={error}
+          onPokemonClick={handlePokemonClick}
+        />
+
+        <InfoModal pokemon={selectedPokemon} onClose={handleCloseModal} />
       </main>
     </>
   );

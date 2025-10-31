@@ -1,19 +1,18 @@
-type Pokemon = {
-  name: string;
-  image: string | null;
-  type: string[];
-};
+import Image from "next/image";
+import { Pokemon } from "../utils/types";
 
 interface PokemonGridProps {
   results: Pokemon[];
   loading: boolean;
   error: string;
+  onPokemonClick: (pokemon: Pokemon) => void;
 }
 
 export default function PokemonGrid({
   results,
   loading,
   error,
+  onPokemonClick,
 }: PokemonGridProps) {
   return (
     <>
@@ -31,13 +30,16 @@ export default function PokemonGrid({
         {results.map((pokemon) => (
           <article
             key={pokemon.name}
-            className="bg-white rounded-xl shadow-md p-5 flex flex-col items-center text-center hover:shadow-lg transition"
+            className="bg-white rounded-xl shadow-md p-5 flex flex-col items-center text-center hover:shadow-lg transition cursor-pointer"
+            onClick={() => onPokemonClick(pokemon)}
           >
             {pokemon.image ? (
-              <img
+              <Image
                 src={pokemon.image}
                 alt={pokemon.name}
-                className="w-28 h-28 object-contain mb-4"
+                width={112}
+                height={112}
+                className="object-contain mb-4"
                 loading="lazy"
               />
             ) : (
